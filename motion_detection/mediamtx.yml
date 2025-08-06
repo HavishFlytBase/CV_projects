@@ -1,0 +1,50 @@
+# MediaMTX configuration for motion detection testing
+
+# General settings
+logLevel: info
+logDestinations: [stdout]
+logFile: ""
+
+# API settings
+api: yes
+apiAddress: 127.0.0.1:9997
+
+# Metrics settings  
+metrics: no
+metricsAddress: 127.0.0.1:9998
+
+# RTSP settings
+rtspAddress: :8554
+protocols: [udp, multicast, tcp]
+encryption: no
+serverKey: server.key
+serverCert: server.crt
+
+# Authentication (disabled for testing)
+authMethod: internal
+
+# Path settings for our streams
+paths:
+  # Input stream (where we'll publish the MP4 video)
+  input:
+    source: publisher
+    publishUser: ""
+    publishPass: ""
+    readUser: ""
+    readPass: ""
+
+  # Output stream (where motion detection results will be published)  
+  output:
+    source: publisher
+    publishUser: ""
+    publishPass: ""
+    readUser: ""
+    readPass: ""
+
+  # Test stream for viewing
+  test:
+    source: publisher
+    publishUser: ""
+    publishPass: ""
+    readUser: ""
+    readPass: ""

@@ -106,7 +106,9 @@ def non_max_suppression(boxes, scores, threshold=1e-1):
 
 def draw_bboxes(frame, detections):
     for det in detections:
-        x1,y1,x2,y2 = det
+        x1,y1,x2,y2 = det[:4]  # Take first 4 values to handle cases with score
+        # Ensure coordinates are integers for OpenCV
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
         cv2.rectangle(frame, (x1,y1), (x2,y2), (0,255,0), 3)
 
 
@@ -143,5 +145,3 @@ def create_gif_from_images(save_path : str, image_path : str, ext : str, duratio
 
     pil_images[0].save(save_path, format='GIF', append_images=pil_images,
                        save_all=True, duration=duration, loop=0)
-    
-
