@@ -6,6 +6,8 @@ Falls back to CPU if GPU is not available
 
 import cv2
 import numpy as np
+import argparse
+import sys
 from motion_detection_utils import *
 from motion_comp_utils import *
 
@@ -837,80 +839,82 @@ def get_motion_detections(frame1, frame2, cluster_model, c=2, angle_thresh=0.1,
 
     return clusters
 
-# Example usage
-if __name__ == "__main__":
-    # Test GPU detection
-    print("🔧 GPU Motion Detection Test")
+def main():
+    """Main function to handle command line arguments and run motion detection"""
+    parser = argparse.ArgumentParser(description='GPU-Accelerated Motion Detection from MP4 Video Files')
+    
+    parser.add_argument('video_path', help='Path to input MP4 video file')
+    parser.add_argument('--method', choices=['background_subtraction', 'frame_differencing', 'optical_flow', 'flow_based', 'unsupervised'],
+                        default='background_subtraction', help='Motion detection method to use (default: background_subtraction)')
+    parser.add_argument('--output', help='Path to save output video (optional)')
+    parser.add_argument('--use-gpu', action='store_true', help='Force GPU usage (default: auto-detect)')
+    parser.add_argument('--no-gpu', action='store_true', help='Force CPU usage')
+    parser.add_argument('--gpu-memory-fraction', type=float, default=0.8, 
+                        help='Fraction of GPU memory to use (0.1-1.0, default: 0.8)')
+    parser.add_argument('--test-gpu', action='store_true', help='Show GPU status and exit')
+    
+    args = parser.parse_args()
+    
+    # Handle GPU testing mode
+    if args.test_gpu:
+        print("🔧 GPU Motion Detection Test")
+        print("="*50)
+        
+        print(f"GPU Manager Status:")
+        print(f"- GPU Available: {gpu_manager.gpu_available}")
+        print(f"- CUDA Device Count: {gpu_manager.cuda_device_count}")
+        print(f"- GPU Enabled: {gpu_manager.is_gpu_enabled()}")
+        print(f"- CuPy Available: {CUPY_AVAILABLE}")
+        print(f"- Advanced Methods: {ADVANCED_METHODS_AVAILABLE}")
+        return
+    
+    # Validate video path
+    import os
+    if not os.path.exists(args.video_path):
+        print(f"Error: Video file '{args.video_path}' not found")
+        sys.exit(1)
+    
+    # Set GPU usage preference
+    use_gpu = None
+    if args.no_gpu:
+        use_gpu = False
+    elif args.use_gpu:
+        use_gpu = True
+    
+    # Generate output path if not provided
+    output_path = args.output
+    if output_path is None:
+        base_name = os.path.splitext(os.path.basename(args.video_path))[0]
+        output_dir = os.path.dirname(args.video_path) or '.'
+        output_path = os.path.join(output_dir, f"{base_name}_{args.method}_motion_detected.mp4")
+    
+    print("🔧 GPU Motion Detection")
+    print("="*50)
+    print(f"Input video: {args.video_path}")
+    print(f"Method: {args.method}")
+    print(f"Output: {output_path}")
+    print(f"GPU preference: {'Force GPU' if use_gpu is True else 'Force CPU' if use_gpu is False else 'Auto-detect'}")
     print("="*50)
     
-    print(f"GPU Manager Status:")
-    print(f"- GPU Available: {gpu_manager.gpu_available}")
-    print(f"- CUDA Device Count: {gpu_manager.cuda_device_count}")
-    print(f"- GPU Enabled: {gpu_manager.is_gpu_enabled()}")
-    print(f"- CuPy Available: {CUPY_AVAILABLE}")
-    print(f"- Advanced Methods: {ADVANCED_METHODS_AVAILABLE}")
+    # Run motion detection
+    detections = detect_motion_from_mp4(
+        video_path=args.video_path,
+        method=args.method,
+        output_path=output_path,
+        use_gpu=use_gpu,
+        gpu_memory_fraction=args.gpu_memory_fraction
+    )
     
-    # Specific video file path
-    video_path = "/Users/havishbychapur/Movies/BAPSPerimeterParkedVehicles.mp4"
-    
-    # All available methods
-    methods = ['unsupervised']
-    
-    print(f"\nStarting motion detection on: {video_path}")
-    print(f"Running all {len(methods)} algorithms for comparison...")
-    print("="*60)
-    
-    # Run each method
-    for i, method in enumerate(methods, 1):
-        output_path = f"/Users/havishbychapur/Movies/BAPSPerimeterParkedVehicles_{method}_gpu.mp4"
-        
-        print(f"\n[{i}/3] Processing with {method.upper().replace('_', ' ')} (GPU-accelerated)...")
-        print(f"Output will be saved to: {output_path}")
-        
-        # Run detection with GPU acceleration
-        detections = detect_motion_from_mp4(video_path, method=method, output_path=output_path, use_gpu=True)
-        
-        if detections:
-            frames_with_objects = sum(len(d) > 0 for d in detections)
-            total_detections = sum(len(d) for d in detections)
-            print(f"✓ {method.upper().replace('_', ' ')} completed!")
-            print(f"  - Found objects in {frames_with_objects}/{len(detections)} frames ({frames_with_objects/len(detections)*100:.1f}%)")
-            print(f"  - Total detections: {total_detections}")
-        else:
-            print(f"✗ {method.upper().replace('_', ' ')} failed or no objects found")
-    
-    print("\n" + "="*60)
-    print("All algorithms completed! Compare the results:")
-    for method in methods:
-        print(f"- {method.upper().replace('_', ' ')}: BAPSPerimeterParkedVehicles_{method}_gpu.mp4")
-    
-    # Optional: GPU vs CPU performance comparison test
-    print("\n" + "="*60)
-    print("GPU vs CPU Performance Test (uncomment to enable):")
-    print("# To enable performance comparison, uncomment the code block below")
-    
-    if False:  # Set to True to run performance comparison
-        # Test GPU vs CPU performance
-        test_methods = ['background_subtraction', 'optical_flow']
-        
-        for method in test_methods:
-            print(f"\n🧪 Testing {method}")
-            
-            # GPU version
-            print("  GPU Processing...")
-            import time
-            start = time.time()
-            gpu_detections = detect_motion_from_mp4(video_path, method=method, use_gpu=True)
-            gpu_time = time.time() - start
-            
-            # CPU version  
-            print("  CPU Processing...")
-            start = time.time()
-            cpu_detections = detect_motion_from_mp4(video_path, method=method, use_gpu=False)
-            cpu_time = time.time() - start
-            
-            if gpu_time > 0 and cpu_time > 0:
-                speedup = cpu_time / gpu_time
-                print(f"  Speedup: {speedup:.2f}x")
-            
-            print(f"  GPU Time: {gpu_time:.2f}s, CPU Time: {cpu_time:.2f}s")
+    if detections:
+        frames_with_objects = sum(len(d) > 0 for d in detections)
+        total_detections = sum(len(d) for d in detections)
+        print(f"\n✅ Motion detection completed!")
+        print(f"- Found objects in {frames_with_objects}/{len(detections)} frames ({frames_with_objects/len(detections)*100:.1f}%)")
+        print(f"- Total detections: {total_detections}")
+        print(f"- Output saved to: {output_path}")
+    else:
+        print(f"\n❌ Motion detection failed or no objects found")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
